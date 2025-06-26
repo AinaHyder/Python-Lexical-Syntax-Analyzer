@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Lexer & Parser Analyzer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 0;
+            min-height: 700px;
+        }
+
+        .input-section {
+            padding: 30px;
+            background: #f8f9fa;
+            border-right: 1px solid #e9ecef;
+        }
+
+        .output-section {
+            padding: 30px;
+            background: white;
+        }
+
+        .section-title {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .icon {
+            width: 24px;
+            height: 24px;
+            fill: currentColor;
+        }
+
+        textarea {
+            width: 100%;
+            height: 500px;
+            padding: 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            resize: vertical;
+            transition: border-color 0.3s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #4facfe;
+            box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+        }
+
+        .analyze-btn {
+            width: 100%;
+            padding: 15px;
+            margin-top: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .analyze-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+
+        .analyze-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #e9ecef;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .tab {
+            padding: 12px 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        .tab.active {
+            color: #4facfe;
+            border-bottom-color: #4facfe;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .tokens-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        .tokens-table th,
+        .tokens-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+            font-size: 13px;
+        }
+
+        .tokens-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .token-type {
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .token-KEYWORD { background: #e3f2fd; color: #1976d2; }
+        .token-IDENTIFIER { background: #e8f5e8; color: #388e3c; }
+        .token-INTEGER { background: #f3e5f5; color: #7b1fa2; }
+        .token-FLOAT { background: #f3e5f5; color: #7b1fa2; }
+        .token-STRING { background: #fff3e0; color: #f57c00; }
+        .token-OPERATOR { background: #ffebee; color: #d32f2f; }
+        .token-DELIMITER { background: #f5f5f5; color: #616161; }
+        .token-NEWLINE { background: #e8eaf6; color: #3f51b5; }
+        .token-COMMENT { background: #e0f2f1; color: #00796b; }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .summary-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .summary-card h3 {
+            font-size: 1.8em;
+            margin-bottom: 5px;
+        }
+
+        .summary-card p {
+            opacity: 0.9;
+            font-size: 0.9em;
+        }
+
+        .parse-tree {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .output-list {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .output-item {
+            background: white;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border-left: 4px solid #4facfe;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+
+        .error-list {
+            background: #ffebee;
+            border: 1px solid #ffcdd2;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 10px;
+        }
+
+        .error-item {
+            color: #d32f2f;
+            margin-bottom: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+            border-left: 4px solid #d32f2f;
+        }
+
+        .no-errors {
+            background: #e8f5e8;
+            border: 1px solid #c8e6c9;
+            color: #388e3c;
+            text-align: center;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4facfe;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .table-container {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+        }
+
+        .symbol-table {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .symbol-section {
+            margin-bottom: 20px;
+        }
+
+        .symbol-section h4 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .symbol-item {
+            background: white;
+            padding: 8px 12px;
+            margin: 5px 0;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .input-section {
+                border-right: none;
+                border-bottom: 1px solid #e9ecef;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .tabs {
+                font-size: 12px;
+            }
+            
+            .tab {
+                padding: 10px 15px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 Complete Lexer & Parser Analyzer</h1>
+            <p>Advanced lexical analysis, syntax parsing, and output prediction</p>
+        </div>
+
+        <div class="main-content">
+            <div class="input-section">
+                <h2 class="section-title">
+                    <svg class="icon" viewBox="0 0 24 24">
+                        <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                    </svg>
+                    Source Code Input
+                </h2>
+                <textarea id="codeInput" placeholder="Enter your Python code here...">def factorial(n):
+    if n <= 1:
+        return 1
+    else:
+        return n * factorial(n - 1)
+
+x = 5
+result = factorial(x)
+print result
+# This calculates factorial</textarea>
+                <button id="analyzeBtn" class="analyze-btn">
+                    🚀 Analyze Code (Lexer + Parser)
+                </button>
+            </div>
+
+            <div class="output-section">
+                <h2 class="section-title">
+                    <svg class="icon" viewBox="0 0 24 24">
+                        <path d="M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3M19,19H5V5H19V19Z"/>
+                    </svg>
+                    Complete Analysis Results
+                </h2>
+
+                <div class="tabs">
+                    <button class="tab active" data-tab="tokens">Tokens</button>
+                    <button class="tab" data-tab="parse-tree">Parse Tree</button>
+                    
+                    <button class="tab" data-tab="summary">Summary</button>
+                    <button class="tab" data-tab="errors">Errors</button>
+                </div>
+
+                <div id="tokens" class="tab-content active">
+                    <div id="tokensContent">
+                        <p style="text-align: center; color: #666; padding: 40px;">
+                            Enter code and click "Analyze Code" to see detailed token breakdown
+                        </p>
+                    </div>
+                </div>
+
+                <div id="parse-tree" class="tab-content">
+                    <div id="parseTreeContent">
+                        <p style="text-align: center; color: #666; padding: 40px;">
+                            Parse tree and AST will appear here
+                        </p>
+                    </div>
+                </div>
+
+                <div id="output" class="tab-content">
+                    <div id="outputContent">
+                        <p style="text-align: center; color: #666; padding: 40px;">
+                            Predicted program output will be shown here
+                        </p>
+                    </div>
+                </div>
+
+                <div id="symbols" class="tab-content">
+                    <div id="symbolsContent">
+                        <p style="text-align: center; color: #666; padding: 40px;">
+                            Symbol table (variables and functions) will appear here
+                        </p>
+                    </div>
+                </div>
+
+                <div id="summary" class="tab-content">
+                    <div id="summaryContent">
+                        <p style="text-align: center; color: #666; padding: 40px;">
+                            Analysis summary will appear here
+                        </p>
+                    </div>
+                </div>
+
+                <div id="errors" class="tab-content">
+                    <div id="errorsContent">
+                        <p style="text-align: center; color: #666; padding: 40px;">
+                            Lexical and syntax errors will be shown here
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Tab functionality
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                // Remove active class from all tabs and contents
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                // Add active class to clicked tab and corresponding content
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        // Analyze button functionality
+        document.getElementById('analyzeBtn').addEventListener('click', async () => {
+            const code = document.getElementById('codeInput').value.trim();
+            const btn = document.getElementById('analyzeBtn');
+            
+            if (!code) {
+                alert('Please enter some code to analyze');
+                return;
+            }
+
+            // Show loading state
+            btn.disabled = true;
+            btn.innerHTML = '⏳ Analyzing...';
+            
+            // Show loading in all content areas
+            const loadingHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Performing lexical analysis and syntax parsing...</p>
+                </div>
+            `;
+            
+            document.getElementById('tokensContent').innerHTML = loadingHTML;
+            document.getElementById('parseTreeContent').innerHTML = loadingHTML;
+            document.getElementById('outputContent').innerHTML = loadingHTML;
+            document.getElementById('symbolsContent').innerHTML = loadingHTML;
+            document.getElementById('summaryContent').innerHTML = loadingHTML;
+            document.getElementById('errorsContent').innerHTML = loadingHTML;
+
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ code: code })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Analysis failed');
+                }
+
+                const result = await response.json();
+                displayResults(result);
+
+            } catch (error) {
+                console.error('Error:', error);
+                const errorHTML = '<div class="error-list"><div class="error-item">Failed to analyze code. Please try again.</div></div>';
+                document.getElementById('tokensContent').innerHTML = errorHTML;
+                document.getElementById('parseTreeContent').innerHTML = errorHTML;
+                document.getElementById('outputContent').innerHTML = errorHTML;
+                document.getElementById('symbolsContent').innerHTML = errorHTML;
+                document.getElementById('summaryContent').innerHTML = errorHTML;
+                document.getElementById('errorsContent').innerHTML = errorHTML;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '🚀 Analyze Code (Lexer + Parser)';
+            }
+        });
+
+        function displayResults(result) {
+            // Display tokens
+            if (result.tokens && result.tokens.length > 0) {
+                let tokensHTML = `
+                    <div class="table-container">
+                        <table class="tokens-table">
+                            <thead>
+                                <tr>
+                                    <th>Type</th>
+                                    <th>Value</th>
+                                    <th>Position</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                
+                result.tokens.forEach(token => {
+                    const displayValue = token.value === '\\n' ? '\\n' : token.value;
+                    tokensHTML += `
+                        <tr>
+                            <td><span class="token-type token-${token.type}">${token.type}</span></td>
+                            <td style="font-family: monospace;">${displayValue}</td>
+                            <td>L${token.line}:C${token.column}</td>
+                            <td>${token.description}</td>
+                        </tr>
+                    `;
+                });
+                
+                tokensHTML += '</tbody></table></div>';
+                document.getElementById('tokensContent').innerHTML = tokensHTML;
+            } else {
+                document.getElementById('tokensContent').innerHTML = 
+                    '<p style="text-align: center; color: #666;">No tokens found</p>';
+            }
+
+            // Display parse tree
+            if (result.parse_tree) {
+                document.getElementById('parseTreeContent').innerHTML = 
+                    `<div class="parse-tree">${result.parse_tree}</div>`;
+            } else {
+                document.getElementById('parseTreeContent').innerHTML = 
+                    '<div class="error-list"><div class="error-item">Parse tree could not be generated due to syntax errors</div></div>';
+            }
+
+            // Display predicted output
+            if (result.predicted_output && result.predicted_output.length > 0) {
+                let outputHTML = '<div class="output-list">';
+                result.predicted_output.forEach((output, index) => {
+                    outputHTML += `<div class="output-item">${index + 1}. ${output}</div>`;
+                });
+                outputHTML += '</div>';
+                document.getElementById('outputContent').innerHTML = outputHTML;
+            } else {
+                document.getElementById('outputContent').innerHTML = 
+                    '<p style="text-align: center; color: #666;">No output predicted</p>';
+            }
+
+            // Display symbol table
+            if (result.symbol_table) {
+                let symbolHTML = '<div class="symbol-table">';
+                
+                symbolHTML += '<div class="symbol-section">';
+                symbolHTML += '<h4>Variables:</h4>';
+                if (Object.keys(result.symbol_table.variables).length > 0) {
+                    for (const [name, value] of Object.entries(result.symbol_table.variables)) {
+                        symbolHTML += `<div class="symbol-item">${name} = ${value}</div>`;
+                    }
+                } else {
+                    symbolHTML += '<div class="symbol-item">No variables defined</div>';
+                }
+                symbolHTML += '</div>';
+                
+                symbolHTML += '<div class="symbol-section">';
+                symbolHTML += '<h4>Functions:</h4>';
+                if (result.symbol_table.functions.length > 0) {
+                    result.symbol_table.functions.forEach(func => {
+                        symbolHTML += `<div class="symbol-item">${func}()</div>`;
+                    });
+                } else {
+                    symbolHTML += '<div class="symbol-item">No functions defined</div>';
+                }
+                symbolHTML += '</div>';
+                
+                symbolHTML += '</div>';
+                document.getElementById('symbolsContent').innerHTML = symbolHTML;
+            }
+
+            // Display summary
+            if (result.lexical_summary) {
+                const summaryHTML = `
+                    <div class="summary-grid">
+                        <div class="summary-card">
+                            <h3>${result.lexical_summary.total_tokens}</h3>
+                            <p>Total Tokens</p>
+                        </div>
+                        <div class="summary-card">
+                            <h3>${result.lexical_summary.keywords}</h3>
+                            <p>Keywords</p>
+                        </div>
+                        <div class="summary-card">
+                            <h3>${result.lexical_summary.identifiers}</h3>
+                            <p>Identifiers</p>
+                        </div>
+                        <div class="summary-card">
+                            <h3>${result.lexical_summary.operators}</h3>
+                            <p>Operators</p>
+                        </div>
+                        <div class="summary-card">
+                            <h3>${result.lexical_summary.literals}</h3>
+                            <p>Literals</p>
+                        </div>
+                        <div class="summary-card">
+                            <h3>${result.lexical_summary.delimiters}</h3>
+                            <p>Delimiters</p>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('summaryContent').innerHTML = summaryHTML;
+            }
+
+            // Display errors
+            const allErrors = [...(result.lexical_errors || []), ...(result.parse_errors || [])];
+            if (allErrors.length > 0) {
+                let errorsHTML = '<div class="error-list">';
+                allErrors.forEach(error => {
+                    errorsHTML += `<div class="error-item">${error}</div>`;
+                });
+                errorsHTML += '</div>';
+                document.getElementById('errorsContent').innerHTML = errorsHTML;
+            } else {
+                document.getElementById('errorsContent').innerHTML = 
+                    '<div class="no-errors">✅ No lexical or syntax errors found!</div>';
+            }
+        }
+    </script>
+</body>
+</html>
